@@ -4,6 +4,7 @@ from requests.adapters import HTTPAdapter
 import time
 import requests as rqs  # 首先安装依赖 完整安装python环境后 打开命令行输入: pip install requests
 import random
+from datetime import date
 
 sess = rqs.Session()
 
@@ -25,6 +26,75 @@ videoIncrementBase = 20  # 视频上报进度的基本值 大于20极有可能�
 
 # 视频上报进度的插值 随机数最大值 videoIncrementBase + videoIncrementX 不宜大于20 (可能导致30分钟封禁)
 videoIncrementX = 3
+
+# isSubmitComment isSubmitNote同时开启会导致 note提交失败，短时间内不能在相同课件提交评论和笔记
+# 选分数占比比较高的开 默认提交笔记
+isSubmitComment = False  # 是否完成任务后提交评论
+isSubmitNote = True  # 是否完成任务后提交笔记
+
+debug = False
+
+
+def debugFunc():
+    pass
+
+
+def sign(openClassId, courseOpenId, activityId, signId):
+    """
+    普通一键签到
+    """
+    result = sess.post("https://security.zjy2.icve.com.cn/api/study/faceTeachInfo/stuSign", data={
+        'courseOpenId': (None, courseOpenId),
+        'openClassId': (None, openClassId),
+        'activityId': (None, activityId),
+        'signId': (None, signId)
+    }).json()
+    if result['code'] == -3:
+        return "签到已结束"
+    else:
+        return "签到完成"
+
+
+def getFaceTeachActivityInfo(openClassId, courseOpenId, activityId, type=2):
+    """
+    获取教学课堂活动详情信息
+
+    Returns:
+        [{Id, dataType(提问，签到, etc...), state, title, startDate, voteType, ...}]
+    """
+    return sess.post("https://security.zjy2.icve.com.cn/api/study/faceTeachInfo/faceTeachActivityInfo", data={
+        'courseOpenId': (None, courseOpenId),
+        'openClassId': (None, openClassId),
+        'activityId': (None, activityId),
+        'type': (None, type)
+    }).json()['list']
+
+
+def getTodayFaceTeachScheduleList():
+    """
+    获取当天的所有课程的所有课堂列表
+    Returns:
+        [{Address, ClassSection, State, TeachDate, Title}]
+    """
+    return sess.post("https://zjy2.icve.com.cn/api/student/faceTeachInfo/getFaceTeachSchedule", data={
+        'calendar': (None, "week"),
+    }).json()['faceTeachList']
+
+
+def getTodayFaceTeachScheduleListWithClass(openClassId, courseOpenId, time=date.today().strftime('%Y-%m-%d')):
+    """
+    获取指定课程的某天的课程教学列表
+
+    Returns:
+        [{Address, ClassSection, State, TeachDate, Title}]
+    """
+    calendar = "week"
+    return sess.post("https://security.zjy2.icve.com.cn/api/study/faceTeachInfo/getFaceTeachSchedule", data={
+        'courseOpenId': (None, courseOpenId),
+        'openClassId': (None, openClassId),
+        'currentTime': (None, time),
+        'calendar': (None, calendar),
+    }).json()['faceTeachList']
 
 
 def getCourseList():
@@ -84,6 +154,53 @@ def getCellByTopicId(courseOpenId, openClassId, topicId):
     return r.json()['cellList']
 
 
+def checkNote(courseOpenId, openClassId, cellId):
+    return checkComment(courseOpenId, openClassId, cellId, activityType=2)
+
+
+def checkComment(courseOpenId, openClassId, cellId, activityType=0):
+    """
+    检查当前用户是非已评论
+    Params:
+        activityType: 0评价 2笔记
+    """
+    r = sess.post("https://zjy2.icve.com.cn/api/common/Directory/getCellCommentData", {
+        "courseOpenId": courseOpenId,
+        "openClassId": openClassId,
+        "cellId": cellId,
+        "type": activityType
+    }).json()
+    # pagination { pageIndex, pageSize, totalCount }
+    # list [{userId}]
+    return True
+
+
+def submitNote(courseOpenId, openClassId, cellId):
+    return submitComment(courseOpenId, openClassId, cellId, activityType=2)
+
+
+def submitComment(courseOpenId, openClassId, cellId, content="老师讲的很好！", activityType=1):
+    """
+    提交评论/笔记/问答等
+    Params:
+        activityType: 1评价 2笔记
+    """
+    r = sess.post("https://zjy2.icve.com.cn/api/common/Directory/addCellActivity", data={
+        "courseOpenId": courseOpenId,
+        "openClassId": openClassId,
+        "cellId": cellId,
+        "content": content,
+        "docJson": "",
+        "star": 5,
+        "activityType": activityType
+    }).json()
+    print(r)
+    if (r["code"] != 1):
+        # 发布异常
+        return False
+    return True
+
+
 def doneCellTask(cell, openClassId, moduleId):
     """
     完成模块里的单个任务，根据任务类型调用相应方法
@@ -116,6 +233,16 @@ def doneCellTask(cell, openClassId, moduleId):
             for cell in cell['childNodeList']:
                 doneCellTask(cell, openClassId, moduleId)
             retmsg = "操作成功！"
+        if cate != "子节点":
+            if isSubmitComment and submitComment(cell['courseOpenId'], openClassId, cell['Id']):
+                print("课件评论已发布")
+            else:
+                print("课件笔记发布失败")
+            # 和评论同时发布 触发连续发布 会失败
+            if isSubmitNote and submitNote(cell['courseOpenId'], openClassId, cell['Id']):
+                print('课件笔记已发布')
+            else:
+                print("课件笔记发布失败")
     print("任务类型：【{type}】 结果: 【{retmsg}】 任务名称: 【{name}】 等待冷却时间".format(
         type=cate, name=cell['cellName'], retmsg=retmsg))
     if percent != 100:
@@ -175,7 +302,7 @@ def doneCellVideo(cell, openClassId, moduleId):
                                 guIdToken, "{:.6f}".format(inc),
                                 cellLogId=vd['cellLogId'])
         if '操作成功！' not in str(msg):
-            return "试图提交进度到" + str(inc) + "时发生错误:" + str(msg['msg'])
+            return "试图提交进度到" + str(inc) + "时发生错误:" + str(msg)
         print(" 【{cellName}】 进度上报成功，当前完成度: {p:.2f}% 视频总时长: {sc} 当前进度时长: {ssc} 跳过{jump}".format(
             cellName=vd['cellName'],
             old=inc,
@@ -291,15 +418,47 @@ def viewDirectory(courseOpenId, openClassId, cellId, flag, moduleId):
 # DEFAULT CLI SHELL
 
 
+def signAllTody():
+    classes = getTodayFaceTeachScheduleList()
+    if len(classes) == 0:
+        print(" 此刻没有课程")
+        return
+    for _class in classes:
+        oid = _class['openClassId']
+        cid = _class['courseOpenId']
+        aid = _class['Id']
+        title = _class['Title']
+        actions = getFaceTeachActivityInfo(oid, cid, aid)
+        hasSigned = False
+        for action in actions:
+            type = action['dataType'] if 'dataType' in action else "未知"
+            signId = action['Id']
+            if type == "签到":
+                hasSigned = True
+                print(" => %s %s %s" % (title, sign(oid, cid, aid, signId),
+                                        "已签到" if action['answerCount'] > 0 else "未签到"))
+        if not hasSigned:
+            print(" 当前没到可签")
+    input("按回车返回...")
+
+
 def courseStudy(courseList):
     print("|=====课程列表=====|")
     for course in courseList:
         print("{idx}: {name}".format(idx=courseList.index(
             course), name=course["courseName"]))
+
     print("{idx}: {name}".format(
-        idx=len(courseList), name="【退出】"))
-    i = int(input("> 选择课程:(0-{max})".format(max=len(courseList))))
+        idx=len(courseList), name="【完成此时所有课程的签到】"))
+    print("{idx}: {name}".format(
+        idx=len(courseList)+1, name="【退出】"))
+
+    i = int(input("> 选择课程:(0-{max})".format(max=len(courseList) + 1)))
+
     if i == len(courseList):
+        signAllTody()
+        return True
+    if i == len(courseList) + 1:
         return False
     course = courseList[i]
     courseOpenId = course['courseOpenId']
@@ -423,6 +582,9 @@ def cliMain():
         })
         if len(auth) < 5:
             raise Exception("登录信息不能为空")
+    if debug:
+        debugFunc()
+        return
     print("获取课程列表...")
     courseList = getCourseList()  #
     while(courseStudy(courseList)):  # 进入课程学习循环

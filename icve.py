@@ -18,8 +18,8 @@ except:
     except KeyboardInterrupt:
         quit()
     except Exception:
-        print("\n请在完整安装python环境后，打开命令行输入: pip install requests , urllib3")
-        print("pip install requests , urllib3")
+        print("\n请在完整安装python环境后，打开命令行输入: pip install requests urllib3")
+        print("pip install requests urllib3")
         print("然后再运行本程序")
         print("Python Windows 64位下载地址: https://mirrors.huaweicloud.com/python/3.9.2/python-3.9.2rc1-amd64.exe")
         print("Python Windows 32位下载地址: https://mirrors.huaweicloud.com/python/3.7.2/python-3.7.2.exe")

@@ -1,10 +1,29 @@
-from urllib3.util.retry import Retry
-from requests.packages import urllib3
-from requests.adapters import HTTPAdapter
+import os
 import time
-import requests as rqs  # 首先安装依赖 完整安装python环境后 打开命令行输入: pip install requests
 import random
 from datetime import date
+try:
+    from urllib3.util.retry import Retry
+    from requests.packages import urllib3
+    from requests.adapters import HTTPAdapter
+    import requests as rqs  # 首先安装依赖 完整安装python环境后 打开命令行输入: pip install requests
+except:
+    try:
+        retValue = os.system("pip install requests urllib3")
+        if 1 == retValue:
+            raise Exception("")
+        elif 0 == retValue:
+            os.system("python " + __file__)
+            quit()
+    except KeyboardInterrupt:
+        quit()
+    except Exception:
+        print("\n请在完整安装python环境后，打开命令行输入: pip install requests , urllib3")
+        print("pip install requests , urllib3")
+        print("然后再运行本程序")
+        print("Python Windows 64位下载地址: https://mirrors.huaweicloud.com/python/3.9.2/python-3.9.2rc1-amd64.exe")
+        print("Python Windows 32位下载地址: https://mirrors.huaweicloud.com/python/3.7.2/python-3.7.2.exe")
+        quit()
 
 sess = rqs.Session()
 

@@ -255,12 +255,12 @@ def doneCellTask(cell, openClassId, moduleId):
         if cate != "子节点":
             if isSubmitComment and submitComment(cell['courseOpenId'], openClassId, cell['Id']):
                 print("课件评论已发布")
-            else:
+            elif isSubmitComment:
                 print("课件笔记发布失败")
             # 和评论同时发布 触发连续发布 会失败
             if isSubmitNote and submitNote(cell['courseOpenId'], openClassId, cell['Id']):
                 print('课件笔记已发布')
-            else:
+            elif isSubmitNote:
                 print("课件笔记发布失败")
     print("任务类型：【{type}】 结果: 【{retmsg}】 任务名称: 【{name}】 等待冷却时间".format(
         type=cate, name=cell['cellName'], retmsg=retmsg))

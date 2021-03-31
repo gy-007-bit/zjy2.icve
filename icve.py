@@ -37,19 +37,21 @@ auth = ''  # 设置为自己的auth
 #  - 双击下方内容右侧的一串字符串，全选,右键,复制
 #  - 在本文件的第七行 [auth = ''] 的地方，将刚复制的内容粘贴在 [''] 之间
 
-tastInterval = 1  # 课件上报间隔(秒)，太短会导致学习异常记录 (可能导致30分钟封禁)
+tastInterval = 2  # 课件上报间隔(秒)，太短会导致学习异常记录 (可能导致30分钟封禁)
+noteInterval = 1  # 发布note的间隔
 
 videoIncrementInterval = 5  # 视频课件上报间隔(秒)，太短会导致学习异常记录 (可能导致30分钟封禁)
 
-videoIncrementBase = 4  # 视频上报进度的基本值 大于20极有可能导致学习异常记录 (可能导致30分钟封禁)
+videoIncrementBase = 7  # 视频上报进度的基本值 大于20极有可能导致学习异常记录 (可能导致30分钟封禁)
 
 # 视频上报进度的插值 随机数最大值 videoIncrementBase + videoIncrementX 不宜大于20 (可能导致30分钟封禁)
-videoIncrementX = 3
+videoIncrementX = 4
 
 # isSubmitComment isSubmitNote同时开启会导致 note提交失败，短时间内不能在相同课件提交评论和笔记
 # 选分数占比比较高的开 默认提交笔记
+# 已知该功能很可能导致封禁建议关闭
 isSubmitComment = False  # 是否完成任务后提交评论
-isSubmitNote = True  # 是否完成任务后提交笔记
+isSubmitNote = False  # 是否完成任务后提交笔记
 
 debug = False
 
@@ -253,6 +255,9 @@ def doneCellTask(cell, openClassId, moduleId):
                 doneCellTask(cell, openClassId, moduleId)
             retmsg = "操作成功！"
         if cate != "子节点":
+            # 追加间隔
+            if isSubmitComment or isSubmitNote:
+                time.sleep(noteInterval)
             if isSubmitComment and submitComment(cell['courseOpenId'], openClassId, cell['Id']):
                 print("课件评论已发布")
             elif isSubmitComment:

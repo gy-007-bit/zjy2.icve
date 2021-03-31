@@ -41,7 +41,7 @@ tastInterval = 1  # 课件上报间隔(秒)，太短会导致学习异常记录 
 
 videoIncrementInterval = 5  # 视频课件上报间隔(秒)，太短会导致学习异常记录 (可能导致30分钟封禁)
 
-videoIncrementBase = 20  # 视频上报进度的基本值 大于20极有可能导致学习异常记录 (可能导致30分钟封禁)
+videoIncrementBase = 4  # 视频上报进度的基本值 大于20极有可能导致学习异常记录 (可能导致30分钟封禁)
 
 # 视频上报进度的插值 随机数最大值 videoIncrementBase + videoIncrementX 不宜大于20 (可能导致30分钟封禁)
 videoIncrementX = 3
@@ -198,7 +198,7 @@ def submitNote(courseOpenId, openClassId, cellId):
     return submitComment(courseOpenId, openClassId, cellId, activityType=2)
 
 
-def submitComment(courseOpenId, openClassId, cellId, content="老师讲的很好！", activityType=1):
+def submitComment(courseOpenId, openClassId, cellId, content="老师讲的很好！" + str(random.randint(0, 10000)), activityType=1):
     """
     提交评论/笔记/问答等
     Params:

@@ -42,7 +42,7 @@ noteInterval = 1  # 发布note的间隔
 
 videoIncrementInterval = 5  # 视频课件上报间隔(秒)，太短会导致学习异常记录 (可能导致30分钟封禁)
 
-videoIncrementBase = 7  # 视频上报进度的基本值 大于20极有可能导致学习异常记录 (可能导致30分钟封禁)
+videoIncrementBase = 14  # 视频上报进度的基本值 大于20极有可能导致学习异常记录 (可能导致30分钟封禁)
 
 # 视频上报进度的插值 随机数最大值 videoIncrementBase + videoIncrementX 不宜大于20 (可能导致30分钟封禁)
 videoIncrementX = 4
@@ -473,16 +473,29 @@ def courseStudy(courseList):
             course), name=course["courseName"]))
 
     print("{idx}: {name}".format(
-        idx=len(courseList), name="【完成此时所有课程的签到】"))
+        idx=len(courseList), name="【完成多个指定课程】"))
     print("{idx}: {name}".format(
-        idx=len(courseList)+1, name="【退出】"))
+        idx=len(courseList)+1, name="【完成此时所有课程的签到】"))
+    print("{idx}: {name}".format(
+        idx=len(courseList)+2, name="【退出】"))
 
     i = int(input("> 选择课程:(0-{max})".format(max=len(courseList) + 1)))
 
     if i == len(courseList):
-        signAllTody()
+        kcs = input("用半角\",\"分割要顺序完成的课程， 如: 1,2,4,5\n: ")
+        for kc in kcs.split(","):
+            course = courseList[int(kc)]
+            courseOpenId = course['courseOpenId']
+            openClassId = course['openClassId']
+            (currentProcessModuleId, processList) = getProcessList(
+                courseOpenId, openClassId)
+            while(processStudy(currentProcessModuleId, processList, courseOpenId, openClassId)):  # 进入模块学习循环
+                pass
         return True
     if i == len(courseList) + 1:
+        signAllTody()
+        return True
+    if i == len(courseList) + 2:
         return False
     course = courseList[i]
     courseOpenId = course['courseOpenId']

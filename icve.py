@@ -38,7 +38,7 @@ auth = ''  # 设置为自己的auth
 #  - 在本文件的第七行 [auth = ''] 的地方，将刚复制的内容粘贴在 [''] 之间
 
 tastInterval = 2  # 课件上报间隔(秒)，太短会导致学习异常记录 (可能导致30分钟封禁)
-noteInterval = 1  # 发布note的间隔
+noteInterval = 2  # 发布note的间隔
 
 videoIncrementInterval = 5  # 视频课件上报间隔(秒)，太短会导致学习异常记录 (可能导致30分钟封禁)
 
@@ -51,7 +51,7 @@ videoIncrementX = 4
 # 选分数占比比较高的开 默认提交笔记
 # 已知该功能很可能导致封禁建议关闭
 isSubmitComment = False  # 是否完成任务后提交评论
-isSubmitNote = False  # 是否完成任务后提交笔记
+isSubmitNote = True  # 是否完成任务后提交笔记
 
 debug = False
 
@@ -489,7 +489,7 @@ def courseStudy(courseList):
             openClassId = course['openClassId']
             (currentProcessModuleId, processList) = getProcessList(
                 courseOpenId, openClassId)
-            while(processStudy(currentProcessModuleId, processList, courseOpenId, openClassId)):  # 进入模块学习循环
+            while(processStudy(currentProcessModuleId, processList, courseOpenId, openClassId, direct=True)):  # 进入模块学习循环
                 pass
         return True
     if i == len(courseList) + 1:
@@ -510,7 +510,14 @@ def courseStudy(courseList):
     return True
 
 
-def processStudy(currentProcessModuleId, processList, courseOpenId, openClassId):
+def processStudy(currentProcessModuleId, processList, courseOpenId, openClassId, direct=False):
+    if direct: # 直接完成所有process 并返回False 否则死循环
+        for process in processList:
+            moduleId = process['id']
+            topicList = getTopicByModuleId(courseOpenId, moduleId)
+            topicStudy(topicList, courseOpenId, openClassId,
+                       moduleId, directDone=True)
+        return False
     print("|=====模块列表=====|")
     # 系统认为当前正在学习的模块位于0
     currentProcess = next(

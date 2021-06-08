@@ -313,7 +313,7 @@ def doneCellVideo(cell, openClassId, moduleId):
     studyNewlyTime = vd['stuStudyNewlyTime']  # 上次观看位置
     inc = studyNewlyTime  # inc下次上报的进度 初始化为已有进度
     linc = inc  # 上次上报的进度
-    while(inc <= audioVideoLong):
+    while(inc < audioVideoLong):
         inc += videoIncrementBase + random.random() * videoIncrementX  # 设置下次上报的进度
         if inc >= audioVideoLong:
             inc = audioVideoLong
